@@ -8,7 +8,7 @@ import fire
 # python3 bootstrap_real.py --boot_rate 1.0 --n_boot 100 --gene_path /expanse/lustre/projects/ddp412/zix016/1k1k_h2/gwas_gene/gwas_gene_test.txt --ct_path /expanse/lustre/projects/ddp412/zix016/saige_h2/real_data/CD4_TEM/ --plink_path /expanse/lustre/projects/ddp412/kakamatsu/plink2 --cell_type CD4_TEM
 
 
-def boot_real(
+def bootstrap_real(
     boot_rate: float,
     n_boot: int,
     gene_path: str,
@@ -80,4 +80,4 @@ def boot_real(
 
 
 if __name__ == "__main__":
-    fire.Fire(boot_real)
+    fire.Fire(bootstrap_real)
