@@ -1,0 +1,10 @@
+name: pythn
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.11.0
+  - fire=0.6.0
+  - numpy=1.26.0
+  - pandas=2.2.1
+  - tqdm=4.66.1
