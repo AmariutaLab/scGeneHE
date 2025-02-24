@@ -22,7 +22,7 @@ while read -r gene; do
         --n_boot=${n_boot} \
         --gene=${gene} \
         --pheno_path=${pheno_path}/${gene}/${gene}${pheno_str} \
-        --fam_path=${fam_path}/${gene}/${gene}.fam \
+        --fam_path=${fam_path}.fam \
         --covar=${covar} \
         --bootstrap_path=${bootstrap_path}/${gene} \
         --out_str=${boot_out_str}

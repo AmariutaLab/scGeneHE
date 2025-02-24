@@ -13,7 +13,7 @@ while read -r gene; do
     conda activate saige
     echo "Sparse GRM ====================="
     createSparseGRM.R \
-        --plinkFile=${plink_file_path}/${gene}/${gene} \
+        --plinkFile=${plink_file_path} \
         --nThreads=4 \
         --outputPrefix=${out_file_path}/${gene}/${gene} \
         --numRandomMarkerforSparseKin=${n_marker} \

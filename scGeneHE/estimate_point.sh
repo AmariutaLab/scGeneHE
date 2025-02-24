@@ -40,7 +40,7 @@ while read -r gene; do
         --skipModelFitting=false  \
         --tol=0.01 \
         --IsOverwriteVarianceRatioFile=true \
-        --plinkFile=${plink_file_path}/${gene}/${gene} \
+        --plinkFile=${plink_file_path} \
         --tauInit=${tau_init}
 
 done < "$gene_path"

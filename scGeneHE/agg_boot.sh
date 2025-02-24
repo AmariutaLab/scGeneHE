@@ -19,7 +19,7 @@ while read -r gene; do
 		--boot_out_str=${boot_out_str} \
 		--n_boot=${n_boot} \
 		--gene=$gene \
-		--out_path=${output_path}/${gene}/ \
+		--out_path=${agg_out_path}/ \
 		--out_str=${agg_out_str}
 
 done < "$gene_path"

@@ -1,6 +1,6 @@
 # scGeneHE (single cell Gene expression Heritability Estimation)
 
-scGeneHE is a method that aim to increase the power of cis-heritaiblity estimates by leveraging the intra- and inter- individual correlation using scRNA-seq data. We employed a **Poisson** mixed-effects model that quantifies the cis-genetic component of gene expression using **individual cellular profiles**. scGeneHE is **robust** enough to conduct **bootstrapping** for standard error estimation of cis-heritability. 
+scGeneHE is a method that aim to increase the power of cis-heritaiblity estimates by leveraging the intra- and inter- individual correlation using scRNA-seq data. We employed a **`Poisson`** mixed-effects model that quantifies the cis-genetic component of gene expression using **`individual cellular profiles`**. scGeneHE is **`robust`** enough to conduct **`bootstrapping`** for standard error estimation of cis-heritability. 
 
 ## Environment Setup
 
@@ -8,7 +8,7 @@ Note: This pipeline is still under development. Please wait for our release of a
 
 scGeneHE requires 4 isolated environments: saige, saigeqtl, r, and python. 
 
-1. Install [SAIGE](https://github.com/weizhouUMICH/SAIGE) using the [bioconda recipe](https://github.com/weizhouUMICH/SAIGE/issues/272).
+1. Install [SAIGE](https://github.com/weizhouUMICH/SAIGE) using the [bioconda recipe](https://github.com/weizhouUMICH/SAIGE/issues/272)
 ```sh
     conda create -n saige -c conda-forge -c bioconda "r-base>=4.0" r-saige
     conda activate saige
@@ -21,17 +21,22 @@ scGeneHE requires 4 isolated environments: saige, saigeqtl, r, and python.
 ```
 
 
-3. Set up Python environment for bootstrapping.
+3. Set up Python environment for bootstrapping
 ```sh
     git clone https://github.com/AmariutaLab/scGeneHE.git
     conda env create --file=./envs/pythn.yaml
     conda activate pythn
 ```
 
-4. Set up R environment for h2 estimation and processing results.
+4. Set up R environment for h2 estimation and processing results
 ```sh
     conda env create --file=./envs/r_env.yaml
     conda activate r_env
+```
+
+5. Grant execution permission to files
+```sh
+    chmod +x ./scGeneHE/*.sh
 ```
 
 ## Commands
@@ -59,9 +64,54 @@ scGeneHE includes three sequential steps to conduct cis-heritability estimation:
     * Output: variance parameter estimates files
 
 5. Aggregate bootstrap results
-    *```agg_boot``` function takes in bootstrap estimate results and aggregate them into a result file.
+    * ```agg_boot``` function takes in bootstrap estimate results and aggregate them into a result file.
     * Input: variance parameter estimates files generated in ```Step 4```
     * Output: bootstrap estimate result
 
 ## Example Usage
+
+We generate sample data to illustrate the usage of scGeneHE. We use publicly available genotype data from [1000 Genome Project](https://www.internationalgenome.org/category/genotypes/) and publicly available single-cell gene expression data from [OneK1K](https://onek1k.org/). We truncate 1MB region from chromosome 1 of 100 randomly sampled European individuals from `1000GP`, combined with 100 random individual's single-cell expression (50 cells per donor) of gene CDC37 in CD4+ T effector memory cells in `OneK1K` data. 
+
+```sh
+    ./scGeneHE/generate_grm.sh \
+        ./example/gene_list.txt \
+        ./example/HM_chr1_1MB_100_indiv \
+        ./example/245 \
+        ./example/
+
+    ./scGeneHE/estimate_point.sh \
+        ./example/CDC37 \
+        ./example/HM_chr1_1MB_100_indiv \
+        ./example/CDC37 \
+        _sample_expression \
+        ./example/CDC37 \
+        245 \
+        ./example/gene_list.txt \
+        1,0.1,0.1 \
+        PC1,PC2,PC3,PC4,PC5,PC6,percent.mt \
+        PC1,PC2,PC3,PC4,PC5,PC6 \
+        fid count _h2_estimate
+
+    ./scGeneHE/bootstrap_real.sh \
+        1.0 1 ./example/gene_list.txt \
+        ./example/CDC37 _sample_expression \
+        ./example/HM_chr1_1MB_100_indiv \
+        PC1,PC2,PC3,PC4,PC5,PC6,percent.mt \
+        ./example/ 1.0_sample_boot
+
+    ./scGeneHE/estimate_boot.sh \
+        ./example/CDC37 ./example/CDC37 \
+        ./example/gene_list.txt \
+        ./example 1.0_sample_boot 1 \
+        1,0.1,0.1 PC1,PC2,PC3,PC4,PC5,PC6,percent.mt \
+        PC1,PC2,PC3,PC4,PC5,PC6 fid count \
+        ./example 1.0_sample_boot 245 \
+        ./example/HM_chr1_1MB_100_indiv
+
+    ./scGeneHE/agg_boot.sh \
+        ./example 1.0_sample_boot 1 \
+        ./example/result 1 \
+        ./example/gene_list.txt \
+        _boot_res 
+```
 

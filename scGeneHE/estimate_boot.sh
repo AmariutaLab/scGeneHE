@@ -26,10 +26,10 @@ while read -r gene; do
         echo "BOOT $i"
         echo "SAIGEQTL run ==================="
         spgrm="${grm_path}/${gene}/${gene}_standard_relatednessCutoff_0.125_${n_marker}_randomMarkersUsed.sparseGRM.mtx"
-        spgrm_id="${grm_id_grm_pathpath}/${gene}/${gene}_relatednessCutoff_0.125_${n_marker}_randomMarkersUsed.sparseGRM.mtx.sampleIDs.txt"
+        spgrm_id="${grm_id_path}/${gene}/${gene}_relatednessCutoff_0.125_${n_marker}_randomMarkersUsed.sparseGRM.mtx.sampleIDs.txt"
         pheno="${bootstarp_path}/${gene}/boot${i}/${boot_file_str}_${i}.txt"
         boot_out="${boot_out_path}/${gene}/boot${i}/${boot_out_str}"
-        geno="${plink_file_path}/${gene}/${gene}"
+        geno="${plink_file_path}"
 	    step1_fitNULLGLMM_qtl.R \
             --useSparseGRMtoFitNULL=true \
             --useGRMtoFitNULL=true \
