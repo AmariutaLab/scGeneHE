@@ -1,4 +1,5 @@
 # scGeneHE (single cell Gene expression Heritability Estimation)
+[![DOI](https://zenodo.org/badge/936882217.svg)](https://doi.org/10.5281/zenodo.14920579)
 
 scGeneHE is a method that aim to increase the power of cis-heritaiblity estimates by leveraging the intra- and inter- individual correlation using scRNA-seq data. We employed a **`Poisson`** mixed-effects model that quantifies the cis-genetic component of gene expression using **`individual cellular profiles`**. scGeneHE is **`robust`** enough to conduct **`bootstrapping`** for standard error estimation of cis-heritability. 
 
