@@ -4,9 +4,9 @@ scGeneHE is a method that aim to increase the power of cis-heritaiblity estimate
 
 ## Environment Setup
 
-Note: This pipeline is still under development. Please wait for our release of a reproducible Snakemake workflow. For now, to run the source code, separate environments of R and Python are required. The typical install time on a desktop computer/server is estimated to be 
+Note: This pipeline is still under development. Please wait for our release of a reproducible Snakemake workflow. For now, to run the source code, separate environments of R and Python are required. 
 
-scGeneHE requires 4 isolated environments: saige, saigeqtl, r, and python. 
+scGeneHE requires 4 isolated environments: saige, saigeqtl, r, and python. It could be easily set up on any desktop computer or server platform, with estimated time of <1 hour.
 
 1. Install [SAIGE](https://github.com/weizhouUMICH/SAIGE) using the [bioconda recipe](https://github.com/weizhouUMICH/SAIGE/issues/272)
 ```sh
@@ -114,4 +114,7 @@ We generate sample data to illustrate the usage of scGeneHE. We use publicly ava
         ./example/gene_list.txt \
         _boot_res 
 ```
+All example input and output files could be found under `./example/`. The expected run time for 1 gene in 1 cell type is within 3 minutes, depending on the degree of correlation between individuals in your dataset (less correlated, more time).
 
+## Support
+Please contact zix020@ucsd.edu 
