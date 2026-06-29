@@ -20,6 +20,14 @@ opt = parse_args(OptionParser(option_list=option_list))
 print(opt)
 print("Read param finished ...")
 
+if (is.na(opt$n_boot) || opt$n_boot < 1) {
+  stop("--n_boot must be a positive integer count.")
+}
+
+if (!dir.exists(opt$out_path)) {
+  dir.create(opt$out_path, recursive = TRUE, showWarnings = FALSE)
+}
+
 # function to load data and extract theta values
 extract_theta <- function(gene, base_name, path, i_boot) {
   # construct the file name
@@ -35,6 +43,7 @@ extract_theta <- function(gene, base_name, path, i_boot) {
     if ("modglmm" %in% ls() && "theta" %in% names(modglmm)) {
       # Return a tibble with the theta values
       tibble(
+        gene = gene,
         bootstrap = i_boot,
         phi = modglmm$theta[1],
         tau_1 = modglmm$theta[2],
@@ -43,6 +52,7 @@ extract_theta <- function(gene, base_name, path, i_boot) {
     } else {
       # NA if data not found or structure is incorrect
       tibble(
+        gene = gene,
         bootstrap = i_boot,
         phi = NA_real_,
         tau_1 = NA_real_,
@@ -52,6 +62,7 @@ extract_theta <- function(gene, base_name, path, i_boot) {
   } else {
     # NA if file is empty
     tibble(
+      gene = gene,
       bootstrap = i_boot,
       phi = NA_real_,
       tau_1 = NA_real_,
@@ -60,7 +71,7 @@ extract_theta <- function(gene, base_name, path, i_boot) {
   }
 }
 
-bootstrap_numbers <- 0:opt$n_boot
+bootstrap_numbers <- 0:(opt$n_boot - 1)
 
 print("Start extract theta ...")
 # apply the function over all genes and bootstrap combinations and aggregate results

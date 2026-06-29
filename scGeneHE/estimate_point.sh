@@ -1,38 +1,54 @@
 #!/bin/bash
 
-grm_path=$1 # the directory to grm files for all genes, assuming each gene has its own directory, e.g. grm_path/gene/gene
-plink_file_path=$2 # the directory to the plink files for all genes, assuming each gene has its own directory, e.g. plink_file_path/gene/gene.bed
-pheno_path=$3 # the directory to file of gene expression and covariates for all genes, e.g. the file names are hardcode as pheno_path/gene/gene_all.txt, separated by comma, contains all covariates columns
-pheno_str=$4 # the phenotype file name, e.g. _all.txt, with gene name as prefix
-out_path=$5 # the directory to the output files for all genes, e.g. out_path/gene/gene_h2_estimate
-n_marker=$6 # number of genetic markers used when generating grm
-gene_path=$7 # the path to the gene list, where each gene is a row, without header
-tau_init=$8 # default to 1,0.1,0.1
-covar=$9 # all covariates including sample level and cell level
-sample_covar=${10} # sample/donor level covariates, duplicated for cells, e.g. sex, age
-sample_id=${11} # sample/donor id
-trait_type=${12} # default: count
-out_str=${13} # the output file name, e.g. _h2_estimate, with gene name as prefix
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=common.sh
+source "${SCRIPT_DIR}/common.sh"
 
-conda activate saigeqtl
+if [[ $# -lt 13 || $# -gt 14 ]]; then
+    echo "Usage: $0 <grm_dir> <plink_prefix_or_dir> <pheno_dir> <pheno_suffix> <out_dir> <n_marker> <gene_list> <tau_init> <covars> <sample_covars> <sample_id_col> <trait_type> <out_suffix> [pheno_col]" >&2
+    exit 1
+fi
+
+grm_path=$1 # directory or per-gene directory containing sparse GRM files
+plink_file_path=$2 # PLINK prefix or directory containing per-gene PLINK prefixes
+pheno_path=$3 # directory or per-gene directory containing phenotype files
+pheno_str=$(txt_suffix "$4") # phenotype suffix, with or without .txt
+out_path=$5 # output directory
+n_marker=$6 # number of genetic markers used when generating GRM
+gene_path=$7 # path to the gene list, one gene per row, without header
+tau_init=$8 # default: 1,0.1,0.1
+covar=$9 # all covariates including sample-level and cell-level covariates
+sample_covar=${10} # sample/donor-level covariates, duplicated for cells
+sample_id=${11} # sample/donor ID column in phenotype file
+trait_type=${12} # default: count
+out_str=${13} # output suffix, e.g. _h2_estimate
+pheno_col=${14:-} # phenotype column; defaults to the current gene name
+
+activate_conda_env saigeqtl
 echo "Start"
 
 while read -r gene; do
+    [[ -z "${gene}" ]] && continue
     printf '%s\n' "Processing $gene" 
+    current_pheno_col=${pheno_col:-$gene}
+    grm_prefix=$(resolve_existing_prefix "${grm_path}" "${gene}" "_standard_relatednessCutoff_0.125_${n_marker}_randomMarkersUsed.sparseGRM.mtx")
+    pheno_prefix=$(resolve_existing_prefix "${pheno_path}" "${gene}" "${pheno_str}")
+    plink_prefix=$(resolve_plink_prefix "${plink_file_path}" "${gene}")
+    out_prefix=$(gene_prefix_for_output "${out_path}" "${gene}")
 
     echo "SAIGEQTL run ==================="
     step1_fitNULLGLMM_qtl.R \
         --useSparseGRMtoFitNULL=true \
         --useGRMtoFitNULL=true \
-        --sparseGRMFile=${grm_path}/${gene}/${gene}_standard_relatednessCutoff_0.125_${n_marker}_randomMarkersUsed.sparseGRM.mtx \
-        --sparseGRMSampleIDFile=${grm_path}/${gene}/${gene}_relatednessCutoff_0.125_${n_marker}_randomMarkersUsed.sparseGRM.mtx.sampleIDs.txt \
-        --phenoFile=${pheno_path}/${gene}/${gene}${pheno_str}.txt \
-        --phenoCol=${gene} \
-        --covarColList=${covar} \
-        --sampleCovarColList=${sample_covar} \
-        --sampleIDColinphenoFile=${sample_id} \
-        --traitType=${trait_type} \
-        --outputPrefix=${out_path}/${gene}/${gene}${out_str} \
+        --sparseGRMFile="${grm_prefix}_standard_relatednessCutoff_0.125_${n_marker}_randomMarkersUsed.sparseGRM.mtx" \
+        --sparseGRMSampleIDFile="${grm_prefix}_relatednessCutoff_0.125_${n_marker}_randomMarkersUsed.sparseGRM.mtx.sampleIDs.txt" \
+        --phenoFile="${pheno_prefix}${pheno_str}" \
+        --phenoCol="${current_pheno_col}" \
+        --covarColList="${covar}" \
+        --sampleCovarColList="${sample_covar}" \
+        --sampleIDColinphenoFile="${sample_id}" \
+        --traitType="${trait_type}" \
+        --outputPrefix="${out_prefix}${out_str}" \
         --skipVarianceRatioEstimation=false  \
         --isRemoveZerosinPheno=false \
         --isCovariateOffset=true \
@@ -40,11 +56,10 @@ while read -r gene; do
         --skipModelFitting=false  \
         --tol=0.01 \
         --IsOverwriteVarianceRatioFile=true \
-        --plinkFile=${plink_file_path} \
-        --tauInit=${tau_init}
+        --plinkFile="${plink_prefix}" \
+        --tauInit="${tau_init}"
 
 done < "$gene_path"
 
 echo "Done!"
-
 

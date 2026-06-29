@@ -17,7 +17,7 @@ scGeneHE requires 4 isolated environments: saige, saigeqtl, r, and python. It co
 
 2. Install [SAIGE-QTL](https://github.com/weizhou0/qtl) using the [bioconda recipe](https://github.com/weizhou0/qtl/issues/5). This is a recipe that we created based on the environment needed for SAIGE-QTL. It's now updated to commit [0d1f1eb](https://github.com/weizhou0/qtl/commit/0d1f1ebcc2898eef8c3c6d0a372ee24612ec8ceb) which is sufficient to run scGeneHE. Since SAIGE-QTL is still under development, we will add it to bioconda after it's ready. 
 ```sh
-    conda install -c conda-forge -c bioconda 'aryarm::r-saigeqtl'
+    conda create -n saigeqtl -c conda-forge -c bioconda 'aryarm::r-saigeqtl'
     conda activate saigeqtl
 ```
 
@@ -42,7 +42,7 @@ scGeneHE requires 4 isolated environments: saige, saigeqtl, r, and python. It co
 
 ## Commands
 
-scGeneHE includes three sequential steps to conduct cis-heritability estimation: generating cell-level sparse GRM (genetic relationship matrix), point estimate, bootstrap estimate. Each step depends on the previous step's output. Here is a brief introduction of the commands, detailed description are included in ```./scGeneHE/```.
+scGeneHE includes five sequential stages to conduct cis-heritability estimation: generating the cell-level sparse GRM (genetic relationship matrix), fitting the point estimate, creating bootstrap phenotype files, fitting bootstrap estimates, and aggregating bootstrap results. Each stage takes explicit input/output paths so users can organize data by project, cell type, or gene without editing hardcoded paths in the scripts. Here is a brief introduction of the commands; detailed descriptions are included in ```./scGeneHE/```.
 
 1. Cell-level sparse GRM
     * ```generate_grm``` function takes in a list of genes and genotype data to generate row-expanded genetic relationship matrix in the dimension of number of cells. We enforce the trace of GRM matix to be M (total number of cells) to constrain h2 estimate within the range of [0, 1]. 
@@ -55,13 +55,13 @@ scGeneHE includes three sequential steps to conduct cis-heritability estimation:
     * Output: variance parameter estimates files
 
 3. Bootstrapping samples
-    * ```bootsrap_real``` function takes in all sample gene expression and covariates data to generate bootstrap gene expression and covariates files. We conduct random sampling with replacement across cells.
+    * ```bootstrap_real``` function takes in all sample gene expression and covariates data to generate bootstrap gene expression and covariates files. We conduct random sampling with replacement across cells.
     * Input: all sample gene expression and covariates text file, number of bootstrap conducted
     * Output: bootstrap gene expression and covariates text files in separate directories
 
 4. cis-heritability estimates of bootstrap samples
     * ```estimate_boot``` function takes in bootstrap gene expression and covariates files to estimate cis-h2 of bootstrap samples.
-    * Input: gene expression and covariates text file, GRM generated in ```Step 3```
+    * Input: bootstrapped gene expression and covariates text files, GRM generated in ```Step 1```
     * Output: variance parameter estimates files
 
 5. Aggregate bootstrap results
@@ -77,40 +77,41 @@ We generate sample data to illustrate the usage of scGeneHE. We use publicly ava
     ./scGeneHE/generate_grm.sh \
         ./example/gene_list.txt \
         ./example/HM_chr1_1MB_100_indiv \
-        ./example/245 \
-        ./example/
+        245 \
+        ./example
 
     ./scGeneHE/estimate_point.sh \
-        ./example/CDC37 \
+        ./example \
         ./example/HM_chr1_1MB_100_indiv \
-        ./example/CDC37 \
+        ./example \
         _sample_expression \
-        ./example/CDC37 \
+        ./example \
         245 \
         ./example/gene_list.txt \
         1,0.1,0.1 \
         PC1,PC2,PC3,PC4,PC5,PC6,percent.mt \
         PC1,PC2,PC3,PC4,PC5,PC6 \
-        fid count _h2_estimate
+        iid count _h2_estimate CDC37
 
     ./scGeneHE/bootstrap_real.sh \
         1.0 1 ./example/gene_list.txt \
-        ./example/CDC37 _sample_expression \
+        ./example _sample_expression \
         ./example/HM_chr1_1MB_100_indiv \
         PC1,PC2,PC3,PC4,PC5,PC6,percent.mt \
-        ./example/ 1.0_sample_boot
+        ./example 1.0_sample_boot \
+        CDC37 iid 20250301
 
     ./scGeneHE/estimate_boot.sh \
-        ./example/CDC37 ./example/CDC37 \
+        ./example ./example \
         ./example/gene_list.txt \
         ./example 1.0_sample_boot 1 \
         1,0.1,0.1 PC1,PC2,PC3,PC4,PC5,PC6,percent.mt \
-        PC1,PC2,PC3,PC4,PC5,PC6 fid count \
+        PC1,PC2,PC3,PC4,PC5,PC6 iid count \
         ./example 1.0_sample_boot 245 \
-        ./example/HM_chr1_1MB_100_indiv
+        ./example/HM_chr1_1MB_100_indiv CDC37
 
     ./scGeneHE/agg_boot.sh \
-        ./example 1.0_sample_boot 1 \
+        ./example 1.0_sample_boot \
         ./example/result 1 \
         ./example/gene_list.txt \
         _boot_res 

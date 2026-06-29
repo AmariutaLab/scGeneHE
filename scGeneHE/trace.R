@@ -19,6 +19,9 @@ print(paste0('The density proportion is ', nnzero(sparseGRMLarge)/length(sparseG
 
 # standardize
 diagonal <- diag(sparseGRMLarge)
+if (any(diagonal <= 0)) {
+  stop("Sparse GRM contains non-positive diagonal entries and cannot be standardized.")
+}
 scaling_factors <- sqrt(1 / diagonal)
 scaling_matrix <- Diagonal(x = scaling_factors)
 standardized_sparseGRMLarge <- scaling_matrix %*% sparseGRMLarge %*% scaling_matrix
@@ -35,18 +38,16 @@ print(paste0("Diagonal standardize to ", trace_standardized / n_rows))
 # is_invertible <- function(X) !inherits(try(solve(X), silent = TRUE), "try-error")
 # print(paste0("Check if new matrix is non-singular: ", is_invertible(standardized_sparseGRMLarge)))
 
-# check singularity, if not enforce it
+# check singularity, if needed enforce positive definiteness
 numIDV            <- dim(standardized_sparseGRMLarge)[1]
-scalerM           <- diag(numIDV)-(rep(1,numIDV)%*%t(rep(1,numIDV)))/numIDV
-eig               <- eigen(standardized_sparseGRMLarge)
+standardized_sparseGRMLarge_new <- standardized_sparseGRMLarge
+eig               <- eigen(as.matrix(standardized_sparseGRMLarge), only.values=TRUE)
 eigval            <- eig$value
-eigvector         <- eig$vectors
 if(any(eigval<1e-10)){ 
   warning("The relatedness matrix is singular, it has been modified!")
-  standardized_sparseGRMLarge_new <- as.matrix(nearPD(standardized_sparseGRMLarge,corr=T)$mat)	
+  standardized_sparseGRMLarge_new <- nearPD(standardized_sparseGRMLarge,corr=T)$mat
 }
 
-Ms <- solve(standardized_sparseGRMLarge_new)
 if(rankMatrix(standardized_sparseGRMLarge_new)[1] < numIDV){
   warning("Error, the standardized GRM is still singular!")
 }
@@ -58,8 +59,4 @@ if(nnzero(standardized_sparseGRMLarge_new)/length(standardized_sparseGRMLarge_ne
 out_str<-paste0(opt$out, '_standard_relatednessCutoff_0.125_', opt$n_marker, '_randomMarkersUsed.sparseGRM.mtx')
 standardized_sparseGRMLarge_new <- as(standardized_sparseGRMLarge_new, 'sparseMatrix')
 Matrix:::writeMM(standardized_sparseGRMLarge_new, out_str)
-cat("Standaridization finished. ")
-
-
-# Rscript trace.R --grm_path /expanse/lustre/projects/ddp412/zix016/permut_sim/500_indiv/sim_0/HM_chr1_1MB_sim0_relatednessCutoff_0.125_240_randomMarkersUsed.sparseGRM.mtx --n_marker 240 --out /expanse/lustre/projects/ddp412/zix016/permut_sim/500_indiv/sim_0/HM_chr1_1MB_sim0 
-
+cat("Standardization finished. ")
