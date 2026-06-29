@@ -4,8 +4,8 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=common.sh
 source "${SCRIPT_DIR}/common.sh"
 
-if [[ $# -lt 15 || $# -gt 16 ]]; then
-    echo "Usage: $0 <grm_dir> <grm_id_dir> <gene_list> <bootstrap_dir> <boot_file_prefix> <n_boot> <tau_init> <covars> <sample_covars> <sample_id_col> <trait_type> <boot_out_dir> <boot_out_prefix> <n_marker> <plink_prefix_or_dir> [pheno_col]" >&2
+if [[ $# -lt 15 || $# -gt 17 ]]; then
+    echo "Usage: $0 <grm_dir> <grm_id_dir> <gene_list> <bootstrap_dir> <boot_file_prefix> <n_boot> <tau_init> <covars> <sample_covars> <sample_id_col> <trait_type> <boot_out_dir> <boot_out_prefix> <n_marker> <plink_prefix_or_dir> [pheno_col] [bootstrap_storage_policy]" >&2
     exit 1
 fi
 
@@ -24,7 +24,28 @@ boot_out_path=${12} # output directory for bootstrap estimates
 boot_out_str=${13} # bootstrap output file prefix
 n_marker=${14} # number of genetic markers used to generate GRM
 plink_file_path=${15} # PLINK prefix or directory containing per-gene PLINK prefixes
-pheno_col=${16:-} # phenotype column; defaults to current gene name
+pheno_col="" # phenotype column; defaults to current gene name
+bootstrap_storage_policy="keep" # keep or cleanup bootstrap phenotype intermediates
+
+if [[ $# -ge 16 ]]; then
+    case "${16}" in
+        keep|cleanup)
+            bootstrap_storage_policy=${16}
+            ;;
+        *)
+            pheno_col=${16}
+            ;;
+    esac
+fi
+
+if [[ $# -eq 17 ]]; then
+    bootstrap_storage_policy=${17}
+fi
+
+if [[ "${bootstrap_storage_policy}" != "keep" && "${bootstrap_storage_policy}" != "cleanup" ]]; then
+    echo "bootstrap_storage_policy must be 'keep' or 'cleanup'." >&2
+    exit 1
+fi
 
 echo "Start"
 activate_conda_env "${SCGENEHE_SAIGEQTL_ENV:-saigeqtl}"
@@ -45,6 +66,7 @@ while read -r gene; do
         spgrm="${grm_prefix}_standard_relatednessCutoff_0.125_${n_marker}_randomMarkersUsed.sparseGRM.mtx"
         spgrm_id="${grm_id_prefix}_relatednessCutoff_0.125_${n_marker}_randomMarkersUsed.sparseGRM.mtx.sampleIDs.txt"
         pheno="${gene_bootstrap_path}/boot${i}/${boot_file_str}_${i}.txt"
+        pheno_id="${gene_bootstrap_path}/boot${i}/${boot_file_str}_id.txt"
         boot_out="${gene_boot_out_path}/boot${i}/${boot_out_str}"
         mkdir -p "$(dirname "${boot_out}")"
 	    step1_fitNULLGLMM_qtl.R \
@@ -68,6 +90,14 @@ while read -r gene; do
             --IsOverwriteVarianceRatioFile=true \
             --plinkFile="${plink_prefix}" \
             --tauInit="${tau_init}"
+
+        if [[ "${bootstrap_storage_policy}" == "cleanup" ]]; then
+            if [[ ! -s "${boot_out}.rda" ]]; then
+                echo "Expected bootstrap result is missing or empty, so intermediates were kept: ${boot_out}.rda" >&2
+                exit 1
+            fi
+            rm -f "${pheno}" "${pheno_id}"
+        fi
     done
 done < "$gene_path"
 

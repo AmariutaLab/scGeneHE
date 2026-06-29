@@ -23,6 +23,10 @@ activate_conda_env() {
 
 cd "${REPO_ROOT}"
 
+for script in scGeneHE/*.sh scripts/*.sh tests/*.sh; do
+    bash -n "${script}"
+done
+
 python3 -m unittest \
     tests.test_example_schema \
     tests.test_no_local_paths

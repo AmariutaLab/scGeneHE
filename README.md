@@ -122,7 +122,7 @@ Run these commands from the repository root after completing environment setup.
         1,0.1,0.1 PC1,PC2,PC3,PC4,PC5,PC6,percent.mt \
         PC1,PC2,PC3,PC4,PC5,PC6 iid count \
         ./example 1.0_sample_boot 245 \
-        ./example/HM_chr1_1MB_100_indiv CDC37
+        ./example/HM_chr1_1MB_100_indiv CDC37 keep
 
     ./scGeneHE/agg_boot.sh \
         ./example 1.0_sample_boot \
@@ -131,6 +131,24 @@ Run these commands from the repository root after completing environment setup.
         _boot_res 
 ```
 All example input and output files could be found under `./example/`. The expected run time for 1 gene in 1 cell type is within 3 minutes, depending on the degree of correlation between individuals in your dataset (less correlated, more time).
+
+## Bootstrap Storage
+
+`estimate_boot.sh` keeps all bootstrap phenotype intermediates by default. This
+matches the original workflow and is useful when checking bootstrap input files
+or comparing bootstrap distributions.
+
+For large datasets, pass `cleanup` as the final `estimate_boot.sh` argument to
+remove bootstrap phenotype intermediates after each matching SAIGE-QTL bootstrap
+result is successfully written:
+
+```sh
+    ./scGeneHE/estimate_boot.sh ... CDC37 cleanup
+```
+
+Cleanup mode removes only `boot{i}/${boot_file_prefix}_{i}.txt` and
+`boot{i}/${boot_file_prefix}_id.txt` after `boot{i}/${boot_out_prefix}.rda`
+exists and is non-empty. Bootstrap result files are kept for aggregation.
 
 ## Testing
 
