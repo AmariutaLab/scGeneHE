@@ -1,0 +1,33 @@
+name: self-test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  smoke-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          auto-activate-base: true
+
+      - name: Create test environments
+        run: |
+          conda env create -f envs/pythn.yaml
+          conda env create -f envs/r_env.yaml
+
+      - name: Run static and smoke tests
+        env:
+          SCGENEHE_PY_ENV: pythn
+          SCGENEHE_R_ENV: r_env
+        run: bash scripts/run_smoke_tests.sh

@@ -130,5 +130,19 @@ We generate sample data to illustrate the usage of scGeneHE. We use publicly ava
 ```
 All example input and output files could be found under `./example/`. The expected run time for 1 gene in 1 cell type is within 3 minutes, depending on the degree of correlation between individuals in your dataset (less correlated, more time).
 
+## Testing
+
+The repository includes a lightweight smoke-test suite for the example data,
+bootstrap file generation, bootstrap aggregation, and accidental local-path
+hardcoding. Run it locally with:
+
+```sh
+    SCGENEHE_PY_ENV=qq SCGENEHE_R_ENV=r_env bash scripts/run_smoke_tests.sh
+```
+
+If your conda environments use the default repository names, use
+`SCGENEHE_PY_ENV=pythn` and `SCGENEHE_R_ENV=r_env`. GitHub Actions runs the
+same smoke tests on every push and pull request.
+
 ## Support
 Please contact zix020@ucsd.edu 

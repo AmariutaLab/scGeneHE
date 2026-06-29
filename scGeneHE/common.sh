@@ -11,9 +11,11 @@ activate_conda_env() {
     if command -v conda >/dev/null 2>&1; then
         local conda_base
         conda_base=$(conda info --base)
+        set +u
         # shellcheck disable=SC1091
         source "${conda_base}/etc/profile.d/conda.sh"
         conda activate "${env_name}"
+        set -u
     else
         echo "conda is required to activate environment '${env_name}'." >&2
         exit 1
