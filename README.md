@@ -5,9 +5,9 @@ scGeneHE is a method that aim to increase the power of cis-heritaiblity estimate
 
 ## Environment Setup
 
-Note: This pipeline is still under development. Please wait for our release of a reproducible Snakemake workflow. For now, to run the source code, separate environments of R and Python are required. 
+Note: This pipeline is still under development. Please wait for our release of a reproducible Snakemake workflow. For now, to run the source code, separate conda environments are required.
 
-scGeneHE requires 4 isolated environments: saige, saigeqtl, r, and python. It could be easily set up on any desktop computer or server platform, with estimated time of <1 hour.
+scGeneHE uses four isolated environments: SAIGE, SAIGE-QTL, Python, and R. The default environment names used by the wrapper scripts are `saige`, `saigeqtl`, `pythn`, and `r_env`.
 
 1. Install [SAIGE](https://github.com/weizhouUMICH/SAIGE) using the [bioconda recipe](https://github.com/weizhouUMICH/SAIGE/issues/272)
 ```sh
@@ -15,9 +15,9 @@ scGeneHE requires 4 isolated environments: saige, saigeqtl, r, and python. It co
     conda activate saige
 ```
 
-2. Install [SAIGE-QTL](https://github.com/weizhou0/qtl) using the [bioconda recipe](https://github.com/weizhou0/qtl/issues/5). This is a recipe that we created based on the environment needed for SAIGE-QTL. It's now updated to commit [0d1f1eb](https://github.com/weizhou0/qtl/commit/0d1f1ebcc2898eef8c3c6d0a372ee24612ec8ceb) which is sufficient to run scGeneHE. Since SAIGE-QTL is still under development, we will add it to bioconda after it's ready. 
+2. Install [SAIGE-QTL](https://github.com/weizhou0/qtl). SAIGE-QTL is still under development and is not yet available as a standard bioconda package. The command below creates a dedicated `saigeqtl` environment from the temporary `aryarm` conda channel, using conda-forge/bioconda for dependencies. The recipe tracks commit [0d1f1eb](https://github.com/weizhou0/qtl/commit/0d1f1ebcc2898eef8c3c6d0a372ee24612ec8ceb), which is sufficient to run scGeneHE.
 ```sh
-    conda create -n saigeqtl -c conda-forge -c bioconda 'aryarm::r-saigeqtl'
+    conda create -n saigeqtl -c aryarm -c conda-forge -c bioconda r-saigeqtl
     conda activate saigeqtl
 ```
 
@@ -38,12 +38,12 @@ scGeneHE requires 4 isolated environments: saige, saigeqtl, r, and python. It co
 5. Grant execution permission to files
 ```sh
     chmod +x ./scGeneHE/*.sh
+    chmod +x ./scripts/*.sh ./tests/*.sh
 ```
 
-The shell wrappers use these default conda environment names: `saige`,
-`saigeqtl`, `pythn`, and `r_env`. If your local environment names differ, set
-environment variables before running the wrappers instead of editing the
-scripts:
+The shell wrappers source conda's shell hook before calling `conda activate`.
+If your local environment names differ from the defaults, set environment
+variables before running the wrappers instead of editing the scripts:
 
 ```sh
     export SCGENEHE_SAIGE_ENV=saige
@@ -84,6 +84,8 @@ scGeneHE includes five sequential stages to conduct cis-heritability estimation:
 ## Example Usage
 
 We generate sample data to illustrate the usage of scGeneHE. We use publicly available genotype data from [1000 Genome Project](https://www.internationalgenome.org/category/genotypes/) and publicly available single-cell gene expression data from [OneK1K](https://onek1k.org/). We truncate 1MB region from chromosome 1 of 100 randomly sampled European individuals from `1000GP`, combined with 100 random individual's single-cell expression (50 cells per donor) of gene CDC37 in CD4+ T effector memory cells in `OneK1K` data. 
+
+Run these commands from the repository root after completing environment setup.
 
 ```sh
     ./scGeneHE/generate_grm.sh \
