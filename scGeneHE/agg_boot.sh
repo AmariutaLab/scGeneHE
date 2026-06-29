@@ -16,7 +16,7 @@ n_boot=$4 # number of bootstraps
 gene_path=$5 # path to a list of genes, one per row, without header
 agg_out_str=$6 # aggregate output suffix, e.g. _boot_res
 
-activate_conda_env r_env
+activate_conda_env "${SCGENEHE_R_ENV:-r_env}"
 
 echo "Start"
 mkdir -p "${agg_out_path}"

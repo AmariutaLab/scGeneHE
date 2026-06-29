@@ -22,7 +22,7 @@ while read -r gene; do
     plink_prefix=$(resolve_plink_prefix "${plink_file_path}" "${gene}")
     out_prefix=$(gene_prefix_for_output "${out_file_path}" "${gene}")
 
-    activate_conda_env saige
+    activate_conda_env "${SCGENEHE_SAIGE_ENV:-saige}"
     echo "Sparse GRM ====================="
     createSparseGRM.R \
         --plinkFile="${plink_prefix}" \
@@ -31,7 +31,7 @@ while read -r gene; do
         --numRandomMarkerforSparseKin="${n_marker}" \
         --relatednessCutoff=0.125 
 
-    activate_conda_env r_env
+    activate_conda_env "${SCGENEHE_R_ENV:-r_env}"
     echo "Standardize GRM ================="
     Rscript "${SCRIPT_DIR}/trace.R" \
         --grm_path="${out_prefix}_relatednessCutoff_0.125_${n_marker}_randomMarkersUsed.sparseGRM.mtx" \

@@ -24,7 +24,7 @@ trait_type=${12} # default: count
 out_str=${13} # output suffix, e.g. _h2_estimate
 pheno_col=${14:-} # phenotype column; defaults to the current gene name
 
-activate_conda_env saigeqtl
+activate_conda_env "${SCGENEHE_SAIGEQTL_ENV:-saigeqtl}"
 echo "Start"
 
 while read -r gene; do
@@ -62,4 +62,3 @@ while read -r gene; do
 done < "$gene_path"
 
 echo "Done!"
-

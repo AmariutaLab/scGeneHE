@@ -40,6 +40,18 @@ scGeneHE requires 4 isolated environments: saige, saigeqtl, r, and python. It co
     chmod +x ./scGeneHE/*.sh
 ```
 
+The shell wrappers use these default conda environment names: `saige`,
+`saigeqtl`, `pythn`, and `r_env`. If your local environment names differ, set
+environment variables before running the wrappers instead of editing the
+scripts:
+
+```sh
+    export SCGENEHE_SAIGE_ENV=saige
+    export SCGENEHE_SAIGEQTL_ENV=saigeqtl
+    export SCGENEHE_PY_ENV=qq
+    export SCGENEHE_R_ENV=r_env
+```
+
 ## Commands
 
 scGeneHE includes five sequential stages to conduct cis-heritability estimation: generating the cell-level sparse GRM (genetic relationship matrix), fitting the point estimate, creating bootstrap phenotype files, fitting bootstrap estimates, and aggregating bootstrap results. Each stage takes explicit input/output paths so users can organize data by project, cell type, or gene without editing hardcoded paths in the scripts. Here is a brief introduction of the commands; detailed descriptions are included in ```./scGeneHE/```.

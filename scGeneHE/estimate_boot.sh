@@ -27,7 +27,7 @@ plink_file_path=${15} # PLINK prefix or directory containing per-gene PLINK pref
 pheno_col=${16:-} # phenotype column; defaults to current gene name
 
 echo "Start"
-activate_conda_env saigeqtl
+activate_conda_env "${SCGENEHE_SAIGEQTL_ENV:-saigeqtl}"
 
 while read -r gene; do
     [[ -z "${gene}" ]] && continue

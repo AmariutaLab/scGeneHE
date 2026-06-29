@@ -22,7 +22,7 @@ pheno_col=${10:-} # phenotype column; defaults to the current gene name
 sample_id_col=${11:-iid} # sample ID column in phenotype file
 seed=${12:-} # optional random seed
 
-activate_conda_env pythn
+activate_conda_env "${SCGENEHE_PY_ENV:-pythn}"
 echo "Start"
 
 while read -r gene; do
@@ -53,4 +53,3 @@ while read -r gene; do
 done < "$gene_path"
 
 echo "Done!"
-
