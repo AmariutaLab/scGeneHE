@@ -1,11 +1,11 @@
 # scGeneHE (single cell Gene expression Heritability Estimation)
 [![DOI](https://zenodo.org/badge/936882217.svg)](https://doi.org/10.5281/zenodo.14920579)
 
-scGeneHE is a method that aim to increase the power of cis-heritaiblity estimates by leveraging the intra- and inter- individual correlation using scRNA-seq data. We employed a **`Poisson`** mixed-effects model that quantifies the cis-genetic component of gene expression using **`individual cellular profiles`**. scGeneHE is **`robust`** enough to conduct **`bootstrapping`** for standard error estimation of cis-heritability. 
+scGeneHE is a method that aims to increase the power of cis-heritability estimates by leveraging intra- and inter-individual correlation in scRNA-seq data. It uses a **`Poisson`** mixed-effects model to quantify the cis-genetic component of gene expression using **`individual cellular profiles`** and supports **`bootstrapping`** for standard error estimation.
 
 ## Environment Setup
 
-Note: This pipeline is still under development. Please wait for our release of a reproducible Snakemake workflow. For now, to run the source code, separate conda environments are required.
+The recommended interface is the Snakemake workflow in `workflow/Snakefile`. The shell wrappers in `scGeneHE/` remain available for manual or advanced usage. Separate conda environments are required for SAIGE, SAIGE-QTL, Python, R, and optionally Snakemake.
 
 scGeneHE uses four isolated environments: SAIGE, SAIGE-QTL, Python, and R. The default environment names used by the wrapper scripts are `saige`, `saigeqtl`, `pythn`, and `r_env`.
 
@@ -69,7 +69,9 @@ variables before running the wrappers instead of editing the scripts:
 
 ## Commands
 
-scGeneHE includes five sequential stages to conduct cis-heritability estimation: generating the cell-level sparse GRM (genetic relationship matrix), fitting the point estimate, creating bootstrap phenotype files, fitting bootstrap estimates, and aggregating bootstrap results. Each stage takes explicit input/output paths so users can organize data by project, cell type, or gene without editing hardcoded paths in the scripts. Here is a brief introduction of the commands; detailed descriptions are included in ```./scGeneHE/```.
+scGeneHE includes five sequential stages to conduct cis-heritability estimation: generating the cell-level sparse GRM (genetic relationship matrix), fitting the point estimate, creating bootstrap phenotype files, fitting bootstrap estimates, and aggregating bootstrap results. Each stage takes explicit input/output paths so users can organize data by project, cell type, or gene without editing hardcoded paths in the scripts.
+
+Detailed wrapper arguments are documented in [`docs/usage.md`](docs/usage.md). Snakemake configuration fields are documented in [`docs/snakemake_config.md`](docs/snakemake_config.md).
 
 1. Cell-level sparse GRM
     * ```generate_grm``` function takes in a list of genes and genotype data to generate row-expanded genetic relationship matrix in the dimension of number of cells. We enforce the trace of GRM matix to be M (total number of cells) to constrain h2 estimate within the range of [0, 1]. 
@@ -204,14 +206,21 @@ Dry-run the example workflow from the repository root:
 Run the workflow by removing `--dry-run`. No Snakemake account or online login
 is required.
 
+For new analyses, copy `workflow/config/config.example.yaml`, edit paths and
+parameters for your cohort/cell type, and keep the original example config as a
+working reference.
+
 ## Testing
 
 The repository includes a lightweight smoke-test suite for the example data,
-bootstrap file generation, bootstrap aggregation, and accidental local-path
-hardcoding. Run it locally with:
+bootstrap file generation, bootstrap aggregation, accidental local-path
+hardcoding, shell syntax, and Snakemake dry-run validation. Run it locally with:
 
 ```sh
-    SCGENEHE_PY_ENV=qq SCGENEHE_R_ENV=r_env SCGENEHE_SNAKEMAKE_ENV=scgenehe-snakemake bash scripts/run_smoke_tests.sh
+    SCGENEHE_PY_ENV=qq \
+    SCGENEHE_R_ENV=r_env \
+    SCGENEHE_SNAKEMAKE_ENV=scgenehe-snakemake \
+    bash scripts/run_smoke_tests.sh
 ```
 
 If your conda environments use the default repository names, use
