@@ -23,6 +23,7 @@ jobs:
 
       - name: Create test environments
         run: |
+          conda env create -f envs/snakemake.yaml
           conda env create -f envs/pythn.yaml
           conda env create -f envs/r_env.yaml
 
@@ -30,4 +31,5 @@ jobs:
         env:
           SCGENEHE_PY_ENV: pythn
           SCGENEHE_R_ENV: r_env
-        run: bash scripts/run_smoke_tests.sh
+          SCGENEHE_SNAKEMAKE_ENV: scgenehe-snakemake
+        run: conda run -n scgenehe-snakemake bash scripts/run_smoke_tests.sh

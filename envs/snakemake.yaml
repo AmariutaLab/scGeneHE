@@ -1,0 +1,7 @@
+name: scgenehe-snakemake
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - snakemake-minimal

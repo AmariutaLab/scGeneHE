@@ -44,3 +44,10 @@ if [[ "${SCGENEHE_SKIP_R_SMOKE:-0}" != "1" ]]; then
     fi
     bash tests/smoke_agg_boot.sh
 fi
+
+if [[ "${SCGENEHE_SKIP_SNAKEMAKE_DRY_RUN:-0}" != "1" ]]; then
+    if [[ -n "${SCGENEHE_SNAKEMAKE_ENV:-}" ]]; then
+        activate_conda_env "${SCGENEHE_SNAKEMAKE_ENV}"
+    fi
+    bash tests/smoke_snakemake_dry_run.sh
+fi

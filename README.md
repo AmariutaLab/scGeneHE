@@ -15,12 +15,20 @@ scGeneHE uses four isolated environments: SAIGE, SAIGE-QTL, Python, and R. The d
     conda activate saige
 ```
 
-2. Install [SAIGE-QTL](https://github.com/weizhou0/qtl). SAIGE-QTL is still under development and is not yet available as a standard bioconda package. The command below creates a dedicated `saigeqtl` environment from the temporary `aryarm` conda channel, using conda-forge/bioconda for dependencies. The recipe tracks commit [0d1f1eb](https://github.com/weizhou0/qtl/commit/0d1f1ebcc2898eef8c3c6d0a372ee24612ec8ceb), which is sufficient to run scGeneHE.
+2. Install [SAIGE-QTL](https://github.com/weizhou0/SAIGEQTL). SAIGE-QTL is still under development and the upstream YAML environment has not been reliable for scGeneHE. The tested conda route is to build/install `r-saigeqtl` from the recipe in [`ziqixu091/aryarm-conda`](https://github.com/ziqixu091/aryarm-conda). The current scGeneHE configuration records recipe commit `891e0944282d48cecafd4f2a8d5ba9643c931a89` and upstream SAIGE-QTL commit `0d1f1ebcc2898eef8c3c6d0a372ee24612ec8ceb`.
 ```sh
-    conda create -n saigeqtl -c aryarm -c conda-forge -c bioconda r-saigeqtl
+    git clone https://github.com/ziqixu091/aryarm-conda.git
+    cd aryarm-conda
+    conda create -y -n biobuild -c conda-forge -c bioconda bioconda-utils
+    conda activate biobuild
+    bioconda-utils build --packages r-saigeqtl
+    conda create -y -n saigeqtl -c "file://${CONDA_PREFIX}/conda-bld" -c conda-forge -c bioconda r-saigeqtl
     conda activate saigeqtl
 ```
 
+When updating SAIGE-QTL, update `vcommit` and `sha256` in the recipe, rebuild
+`r-saigeqtl`, then update the provenance fields in
+`workflow/config/config.example.yaml`.
 
 3. Set up Python environment for bootstrapping
 ```sh
@@ -41,6 +49,12 @@ scGeneHE uses four isolated environments: SAIGE, SAIGE-QTL, Python, and R. The d
     chmod +x ./scripts/*.sh ./tests/*.sh
 ```
 
+6. Optional: set up Snakemake to run the workflow scaffold
+```sh
+    conda env create --file=./envs/snakemake.yaml
+    conda activate scgenehe-snakemake
+```
+
 The shell wrappers source conda's shell hook before calling `conda activate`.
 If your local environment names differ from the defaults, set environment
 variables before running the wrappers instead of editing the scripts:
@@ -50,6 +64,7 @@ variables before running the wrappers instead of editing the scripts:
     export SCGENEHE_SAIGEQTL_ENV=saigeqtl
     export SCGENEHE_PY_ENV=qq
     export SCGENEHE_R_ENV=r_env
+    export SCGENEHE_SNAKEMAKE_ENV=scgenehe-snakemake
 ```
 
 ## Commands
@@ -150,6 +165,45 @@ Cleanup mode removes only `boot{i}/${boot_file_prefix}_{i}.txt` and
 `boot{i}/${boot_file_prefix}_id.txt` after `boot{i}/${boot_out_prefix}.rda`
 exists and is non-empty. Bootstrap result files are kept for aggregation.
 
+When using Snakemake, bootstrap phenotype intermediates can also be marked as
+Snakemake `temp()` files by setting:
+
+```yaml
+bootstrap:
+  snakemake_temp_intermediates: true
+```
+
+Snakemake then deletes those bootstrap phenotype/ID files only after downstream
+rules no longer need them. To place these intermediates on scratch or `/tmp`,
+set `outputs.bootstrap_dir` in the config to that location. Keep
+`outputs.bootstrap_estimate_dir` on persistent storage if you need to preserve
+bootstrap `.rda` files for aggregation or later inspection. Set
+`runtime.tmpdir` to expose a scratch or `/tmp` directory as `TMPDIR` inside
+Snakemake shell jobs; this is separate from where declared output files are
+written.
+
+## Snakemake Workflow
+
+The Snakemake scaffold is a workflow wrapper around the existing shell scripts.
+It does not build SAIGE-QTL automatically. Install a working named `saigeqtl`
+environment first using the recipe workflow above, then set environment names
+and paths in `workflow/config/config.example.yaml`.
+
+Dry-run the example workflow from the repository root:
+
+```sh
+    conda activate scgenehe-snakemake
+    snakemake \
+        --snakefile workflow/Snakefile \
+        --configfile workflow/config/config.example.yaml \
+        --cores 1 \
+        --dry-run \
+        --printshellcmds
+```
+
+Run the workflow by removing `--dry-run`. No Snakemake account or online login
+is required.
+
 ## Testing
 
 The repository includes a lightweight smoke-test suite for the example data,
@@ -157,7 +211,7 @@ bootstrap file generation, bootstrap aggregation, and accidental local-path
 hardcoding. Run it locally with:
 
 ```sh
-    SCGENEHE_PY_ENV=qq SCGENEHE_R_ENV=r_env bash scripts/run_smoke_tests.sh
+    SCGENEHE_PY_ENV=qq SCGENEHE_R_ENV=r_env SCGENEHE_SNAKEMAKE_ENV=scgenehe-snakemake bash scripts/run_smoke_tests.sh
 ```
 
 If your conda environments use the default repository names, use

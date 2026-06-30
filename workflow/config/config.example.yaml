@@ -1,0 +1,54 @@
+# Example Snakemake configuration for the bundled CDC37 fixture.
+# Paths are relative to the repository root when running from the repo root.
+
+inputs:
+  gene_list: example/gene_list.txt
+  plink_prefix: example/HM_chr1_1MB_100_indiv
+  phenotype_dir: example
+  phenotype_suffix: _sample_expression
+
+outputs:
+  grm_dir: example
+  point_dir: example
+  point_suffix: _h2_estimate
+  bootstrap_dir: example
+  bootstrap_estimate_dir: example
+  aggregate_dir: example/result
+
+model:
+  n_marker: 245
+  tau_init: 1,0.1,0.1
+  covariates: PC1,PC2,PC3,PC4,PC5,PC6,percent.mt
+  sample_covariates: PC1,PC2,PC3,PC4,PC5,PC6
+  sample_id_col: iid
+  trait_type: count
+  pheno_col: CDC37
+
+bootstrap:
+  boot_rate: 1.0
+  n_boot: 1
+  input_prefix: 1.0_sample_boot
+  estimate_prefix: 1.0_sample_boot
+  aggregate_suffix: _boot_res
+  seed: 20250301
+  storage_policy: keep
+  snakemake_temp_intermediates: false
+
+runtime:
+  # Set to /tmp or a scratch directory to expose that location as Snakemake's
+  # TMPDIR for shell commands. Bootstrap intermediate output paths are still
+  # controlled by outputs.bootstrap_dir.
+  tmpdir: null
+
+envs:
+  saige: saige
+  saigeqtl: saigeqtl
+  python: pythn
+  r: r_env
+
+saigeqtl_recipe:
+  recipe_repo: https://github.com/ziqixu091/aryarm-conda
+  recipe_commit: 891e0944282d48cecafd4f2a8d5ba9643c931a89
+  upstream_repo: https://github.com/weizhou0/SAIGEQTL
+  upstream_commit: 0d1f1ebcc2898eef8c3c6d0a372ee24612ec8ceb
+  note: Use the conda recipe workflow to build/install r-saigeqtl before running scGeneHE; the upstream SAIGE-QTL YAML environment is not recommended for scGeneHE.

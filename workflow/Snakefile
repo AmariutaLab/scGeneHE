@@ -1,0 +1,277 @@
+import os
+from pathlib import Path
+
+
+configfile: "config/config.example.yaml"
+
+
+def read_genes(gene_list):
+    with open(gene_list) as handle:
+        return [line.strip() for line in handle if line.strip()]
+
+
+def txt_suffix(suffix):
+    return suffix if suffix.endswith(".txt") else suffix + ".txt"
+
+
+def gene_prefix(base, gene):
+    base_path = Path(base)
+    if base_path.name == gene:
+        return str(base_path / gene)
+    return str(base_path / gene / gene)
+
+
+def gene_dir(base, gene):
+    base_path = Path(base)
+    if base_path.name == gene:
+        return str(base_path)
+    return str(base_path / gene)
+
+
+GENES = config.get("genes", read_genes(config["inputs"]["gene_list"]))
+N_BOOT = int(config["bootstrap"]["n_boot"])
+BOOT_INDICES = list(range(N_BOOT))
+N_MARKER = str(config["model"]["n_marker"])
+PHENO_SUFFIX = txt_suffix(str(config["inputs"]["phenotype_suffix"]))
+USE_SNAKEMAKE_TEMP = bool(config["bootstrap"].get("snakemake_temp_intermediates", False))
+RUNTIME_TMPDIR = config.get("runtime", {}).get("tmpdir") or os.environ.get("TMPDIR", "/tmp")
+
+
+def maybe_temp(path):
+    return temp(path) if USE_SNAKEMAKE_TEMP else path
+
+
+def grm_standard(gene):
+    return f"{gene_prefix(config['outputs']['grm_dir'], gene)}_standard_relatednessCutoff_0.125_{N_MARKER}_randomMarkersUsed.sparseGRM.mtx"
+
+
+def grm_sample_ids(gene):
+    return f"{gene_prefix(config['outputs']['grm_dir'], gene)}_relatednessCutoff_0.125_{N_MARKER}_randomMarkersUsed.sparseGRM.mtx.sampleIDs.txt"
+
+
+def point_rda(gene):
+    return f"{gene_prefix(config['outputs']['point_dir'], gene)}{config['outputs']['point_suffix']}.rda"
+
+
+def point_variance_ratio(gene):
+    return f"{gene_prefix(config['outputs']['point_dir'], gene)}{config['outputs']['point_suffix']}.varianceRatio.txt"
+
+
+def bootstrap_pheno(gene, boot):
+    return str(Path(gene_dir(config["outputs"]["bootstrap_dir"], gene)) / f"boot{boot}" / f"{config['bootstrap']['input_prefix']}_{boot}.txt")
+
+
+def bootstrap_id(gene, boot):
+    return str(Path(gene_dir(config["outputs"]["bootstrap_dir"], gene)) / f"boot{boot}" / f"{config['bootstrap']['input_prefix']}_id.txt")
+
+
+def bootstrap_rda(gene, boot):
+    return str(Path(gene_dir(config["outputs"]["bootstrap_estimate_dir"], gene)) / f"boot{boot}" / f"{config['bootstrap']['estimate_prefix']}.rda")
+
+
+def bootstrap_variance_ratio(gene, boot):
+    return str(Path(gene_dir(config["outputs"]["bootstrap_estimate_dir"], gene)) / f"boot{boot}" / f"{config['bootstrap']['estimate_prefix']}.varianceRatio.txt")
+
+
+def aggregate_csv(gene):
+    return str(Path(config["outputs"]["aggregate_dir"]) / f"{gene}{config['bootstrap']['aggregate_suffix']}.csv")
+
+
+rule all:
+    input:
+        [point_rda(gene) for gene in GENES],
+        [point_variance_ratio(gene) for gene in GENES],
+        [aggregate_csv(gene) for gene in GENES]
+
+
+rule generate_grm:
+    input:
+        gene_list=config["inputs"]["gene_list"]
+    output:
+        standard=[grm_standard(gene) for gene in GENES],
+        sample_ids=[grm_sample_ids(gene) for gene in GENES]
+    params:
+        plink_prefix=config["inputs"]["plink_prefix"],
+        n_marker=N_MARKER,
+        out_dir=config["outputs"]["grm_dir"],
+        saige_env=config["envs"]["saige"],
+        r_env=config["envs"]["r"]
+    resources:
+        tmpdir=RUNTIME_TMPDIR
+    shell:
+        """
+        SCGENEHE_SAIGE_ENV="{params.saige_env}" \
+        SCGENEHE_R_ENV="{params.r_env}" \
+        bash scGeneHE/generate_grm.sh \
+            "{input.gene_list}" \
+            "{params.plink_prefix}" \
+            "{params.n_marker}" \
+            "{params.out_dir}"
+        """
+
+
+rule estimate_point:
+    input:
+        gene_list=config["inputs"]["gene_list"],
+        grm=rules.generate_grm.output.standard,
+        grm_ids=rules.generate_grm.output.sample_ids
+    output:
+        rda=[point_rda(gene) for gene in GENES],
+        variance_ratio=[point_variance_ratio(gene) for gene in GENES]
+    params:
+        grm_dir=config["outputs"]["grm_dir"],
+        plink_prefix=config["inputs"]["plink_prefix"],
+        pheno_dir=config["inputs"]["phenotype_dir"],
+        pheno_suffix=config["inputs"]["phenotype_suffix"],
+        out_dir=config["outputs"]["point_dir"],
+        n_marker=N_MARKER,
+        tau_init=config["model"]["tau_init"],
+        covariates=config["model"]["covariates"],
+        sample_covariates=config["model"]["sample_covariates"],
+        sample_id_col=config["model"]["sample_id_col"],
+        trait_type=config["model"]["trait_type"],
+        out_suffix=config["outputs"]["point_suffix"],
+        pheno_col=config["model"].get("pheno_col", ""),
+        saigeqtl_env=config["envs"]["saigeqtl"]
+    resources:
+        tmpdir=RUNTIME_TMPDIR
+    shell:
+        """
+        SCGENEHE_SAIGEQTL_ENV="{params.saigeqtl_env}" \
+        bash scGeneHE/estimate_point.sh \
+            "{params.grm_dir}" \
+            "{params.plink_prefix}" \
+            "{params.pheno_dir}" \
+            "{params.pheno_suffix}" \
+            "{params.out_dir}" \
+            "{params.n_marker}" \
+            "{input.gene_list}" \
+            "{params.tau_init}" \
+            "{params.covariates}" \
+            "{params.sample_covariates}" \
+            "{params.sample_id_col}" \
+            "{params.trait_type}" \
+            "{params.out_suffix}" \
+            "{params.pheno_col}"
+        """
+
+
+rule bootstrap_real:
+    input:
+        gene_list=config["inputs"]["gene_list"]
+    output:
+        pheno=[maybe_temp(bootstrap_pheno(gene, boot)) for gene in GENES for boot in BOOT_INDICES],
+        ids=[maybe_temp(bootstrap_id(gene, boot)) for gene in GENES for boot in BOOT_INDICES]
+    params:
+        boot_rate=config["bootstrap"]["boot_rate"],
+        n_boot=N_BOOT,
+        pheno_dir=config["inputs"]["phenotype_dir"],
+        pheno_suffix=config["inputs"]["phenotype_suffix"],
+        plink_prefix=config["inputs"]["plink_prefix"],
+        covariates=config["model"]["covariates"],
+        bootstrap_dir=config["outputs"]["bootstrap_dir"],
+        output_prefix=config["bootstrap"]["input_prefix"],
+        pheno_col=config["model"].get("pheno_col", ""),
+        sample_id_col=config["model"]["sample_id_col"],
+        seed=config["bootstrap"].get("seed", ""),
+        py_env=config["envs"]["python"]
+    resources:
+        tmpdir=RUNTIME_TMPDIR
+    shell:
+        """
+        SCGENEHE_PY_ENV="{params.py_env}" \
+        bash scGeneHE/bootstrap_real.sh \
+            "{params.boot_rate}" \
+            "{params.n_boot}" \
+            "{input.gene_list}" \
+            "{params.pheno_dir}" \
+            "{params.pheno_suffix}" \
+            "{params.plink_prefix}" \
+            "{params.covariates}" \
+            "{params.bootstrap_dir}" \
+            "{params.output_prefix}" \
+            "{params.pheno_col}" \
+            "{params.sample_id_col}" \
+            "{params.seed}"
+        """
+
+
+rule estimate_boot:
+    input:
+        gene_list=config["inputs"]["gene_list"],
+        grm=rules.generate_grm.output.standard,
+        grm_ids=rules.generate_grm.output.sample_ids,
+        bootstrap=rules.bootstrap_real.output.pheno
+    output:
+        rda=[bootstrap_rda(gene, boot) for gene in GENES for boot in BOOT_INDICES],
+        variance_ratio=[bootstrap_variance_ratio(gene, boot) for gene in GENES for boot in BOOT_INDICES]
+    params:
+        grm_dir=config["outputs"]["grm_dir"],
+        grm_id_dir=config["outputs"]["grm_dir"],
+        bootstrap_dir=config["outputs"]["bootstrap_dir"],
+        boot_file_prefix=config["bootstrap"]["input_prefix"],
+        n_boot=N_BOOT,
+        tau_init=config["model"]["tau_init"],
+        covariates=config["model"]["covariates"],
+        sample_covariates=config["model"]["sample_covariates"],
+        sample_id_col=config["model"]["sample_id_col"],
+        trait_type=config["model"]["trait_type"],
+        boot_out_dir=config["outputs"]["bootstrap_estimate_dir"],
+        boot_out_prefix=config["bootstrap"]["estimate_prefix"],
+        n_marker=N_MARKER,
+        plink_prefix=config["inputs"]["plink_prefix"],
+        pheno_col=config["model"].get("pheno_col", ""),
+        storage_policy=config["bootstrap"].get("storage_policy", "keep"),
+        saigeqtl_env=config["envs"]["saigeqtl"]
+    resources:
+        tmpdir=RUNTIME_TMPDIR
+    shell:
+        """
+        SCGENEHE_SAIGEQTL_ENV="{params.saigeqtl_env}" \
+        bash scGeneHE/estimate_boot.sh \
+            "{params.grm_dir}" \
+            "{params.grm_id_dir}" \
+            "{input.gene_list}" \
+            "{params.bootstrap_dir}" \
+            "{params.boot_file_prefix}" \
+            "{params.n_boot}" \
+            "{params.tau_init}" \
+            "{params.covariates}" \
+            "{params.sample_covariates}" \
+            "{params.sample_id_col}" \
+            "{params.trait_type}" \
+            "{params.boot_out_dir}" \
+            "{params.boot_out_prefix}" \
+            "{params.n_marker}" \
+            "{params.plink_prefix}" \
+            "{params.pheno_col}" \
+            "{params.storage_policy}"
+        """
+
+
+rule aggregate_boot:
+    input:
+        gene_list=config["inputs"]["gene_list"],
+        boot=rules.estimate_boot.output.rda
+    output:
+        csv=[aggregate_csv(gene) for gene in GENES]
+    params:
+        boot_out_dir=config["outputs"]["bootstrap_estimate_dir"],
+        boot_out_prefix=config["bootstrap"]["estimate_prefix"],
+        aggregate_dir=config["outputs"]["aggregate_dir"],
+        n_boot=N_BOOT,
+        aggregate_suffix=config["bootstrap"]["aggregate_suffix"],
+        r_env=config["envs"]["r"]
+    resources:
+        tmpdir=RUNTIME_TMPDIR
+    shell:
+        """
+        SCGENEHE_R_ENV="{params.r_env}" \
+        bash scGeneHE/agg_boot.sh \
+            "{params.boot_out_dir}" \
+            "{params.boot_out_prefix}" \
+            "{params.aggregate_dir}" \
+            "{params.n_boot}" \
+            "{input.gene_list}" \
+            "{params.aggregate_suffix}"
+        """
