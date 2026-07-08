@@ -43,6 +43,12 @@ bootstrap:
   storage_policy: keep
   # true: Snakemake marks bootstrap phenotype/ID files as temp() outputs.
   snakemake_temp_intermediates: false
+  # true: Snakemake deletes bootstrap estimate .rda/varianceRatio files only
+  # after aggregated bootstrap CSV files no longer need them.
+  snakemake_temp_bootstrap_estimates: false
+  # keep: preserve bootstrap directories after aggregation.
+  # cleanup: agg_boot.sh removes boot*/ directories after aggregate CSV exists.
+  post_aggregate_cleanup: keep
 
 runtime:
   # Set to /tmp or a scratch directory to expose that location as Snakemake's

@@ -3,71 +3,111 @@
 
 scGeneHE is a method that aims to increase the power of cis-heritability estimates by leveraging intra- and inter-individual correlation in scRNA-seq data. It uses a **`Poisson`** mixed-effects model to quantify the cis-genetic component of gene expression using **`individual cellular profiles`** and supports **`bootstrapping`** for standard error estimation.
 
-## Environment Setup
+## Recommended Setup: Snakemake
 
-The recommended interface is the Snakemake workflow in `workflow/Snakefile`. The shell wrappers in `scGeneHE/` remain available for manual or advanced usage. Separate conda environments are required for SAIGE, SAIGE-QTL, Python, R, and optionally Snakemake.
+The recommended interface is the Snakemake workflow in `workflow/Snakefile`.
+Snakemake gives one reproducible command for the full analysis while preserving
+the original shell wrappers in `scGeneHE/` for manual or advanced use.
 
-scGeneHE uses four isolated environments: SAIGE, SAIGE-QTL, Python, and R. The default environment names used by the wrapper scripts are `saige`, `saigeqtl`, `pythn`, and `r_env`.
+scGeneHE uses separate conda environments for the workflow driver, SAIGE,
+SAIGE-QTL, Python bootstrapping, and R aggregation. The default environment
+names are `scgenehe-snakemake`, `saige`, `saigeqtl`, `pythn`, and `r_env`.
 
-1. Install [SAIGE](https://github.com/weizhouUMICH/SAIGE) using the [bioconda recipe](https://github.com/weizhouUMICH/SAIGE/issues/272)
+1. Clone the repository and enter it.
+
 ```sh
-    conda create -n saige -c conda-forge -c bioconda "r-base>=4.0" r-saige
-    conda activate saige
+git clone https://github.com/AmariutaLab/scGeneHE.git
+cd scGeneHE
 ```
 
-2. Install [SAIGE-QTL](https://github.com/weizhou0/SAIGEQTL). SAIGE-QTL is still under development and the upstream YAML environment has not been reliable for scGeneHE. The tested conda route is to build/install `r-saigeqtl` from the recipe in [`ziqixu091/aryarm-conda`](https://github.com/ziqixu091/aryarm-conda). The current scGeneHE configuration records recipe commit `891e0944282d48cecafd4f2a8d5ba9643c931a89` and upstream SAIGE-QTL commit `0d1f1ebcc2898eef8c3c6d0a372ee24612ec8ceb`.
+2. Create the Snakemake driver environment.
+
 ```sh
-    git clone https://github.com/ziqixu091/aryarm-conda.git
-    cd aryarm-conda
-    conda create -y -n biobuild -c conda-forge -c bioconda bioconda-utils
-    conda activate biobuild
-    bioconda-utils build --packages r-saigeqtl
-    conda create -y -n saigeqtl -c "file://${CONDA_PREFIX}/conda-bld" -c conda-forge -c bioconda r-saigeqtl
-    conda activate saigeqtl
+conda env create --file envs/snakemake.yaml
+conda activate scgenehe-snakemake
+```
+
+3. Install the analysis environments used by the workflow.
+
+```sh
+conda create -n saige -c conda-forge -c bioconda "r-base>=4.0" r-saige
+conda env create --file envs/pythn.yaml
+conda env create --file envs/r_env.yaml
+```
+
+Install [SAIGE-QTL](https://github.com/weizhou0/SAIGEQTL) through the tested
+conda recipe route. The upstream SAIGE-QTL YAML environment has not been
+reliable for scGeneHE, so the recommended route is to build/install
+`r-saigeqtl` from [`ziqixu091/aryarm-conda`](https://github.com/ziqixu091/aryarm-conda).
+The current scGeneHE example config records recipe commit
+`891e0944282d48cecafd4f2a8d5ba9643c931a89` and upstream SAIGE-QTL commit
+`0d1f1ebcc2898eef8c3c6d0a372ee24612ec8ceb`.
+
+```sh
+git clone https://github.com/ziqixu091/aryarm-conda.git
+cd aryarm-conda
+conda create -y -n biobuild -c conda-forge -c bioconda bioconda-utils
+conda activate biobuild
+bioconda-utils build --packages r-saigeqtl
+conda create -y -n saigeqtl -c "file://${CONDA_PREFIX}/conda-bld" -c conda-forge -c bioconda r-saigeqtl
 ```
 
 When updating SAIGE-QTL, update `vcommit` and `sha256` in the recipe, rebuild
 `r-saigeqtl`, then update the provenance fields in
 `workflow/config/config.example.yaml`.
 
-3. Set up Python environment for bootstrapping
+4. Check that the Snakemake setup is usable.
+
 ```sh
-    git clone https://github.com/AmariutaLab/scGeneHE.git
-    conda env create --file=./envs/pythn.yaml
-    conda activate pythn
+conda activate scgenehe-snakemake
+bash scripts/check_snakemake_setup.sh
 ```
 
-4. Set up R environment for h2 estimation and processing results
+This check verifies that Snakemake is available, validates shell wrapper syntax,
+checks the bundled example schema, scans for accidental local hardcoded paths,
+and dry-runs the example workflow. It does not run SAIGE or SAIGE-QTL.
+
+5. Dry-run the example workflow.
+
 ```sh
-    conda env create --file=./envs/r_env.yaml
-    conda activate r_env
+snakemake \
+  --snakefile workflow/Snakefile \
+  --configfile workflow/config/config.example.yaml \
+  --cores 1 \
+  --dry-run \
+  --printshellcmds
 ```
 
-5. Grant execution permission to files
-```sh
-    chmod +x ./scGeneHE/*.sh
-    chmod +x ./scripts/*.sh ./tests/*.sh
-```
+Run the workflow by removing `--dry-run`. No Snakemake account or online login
+is required.
 
-6. Optional: set up Snakemake to run the workflow scaffold
-```sh
-    conda env create --file=./envs/snakemake.yaml
-    conda activate scgenehe-snakemake
-```
+For a new analysis, copy `workflow/config/config.example.yaml`, edit paths,
+model parameters, bootstrap settings, and environment names for your cohort or
+cell type, and keep the original example config as a working reference.
 
-The shell wrappers source conda's shell hook before calling `conda activate`.
+## Manual Environment Setup
+
+Manual wrapper usage is supported for users who prefer to run each stage
+directly. The wrappers source conda's shell hook before calling `conda activate`.
 If your local environment names differ from the defaults, set environment
-variables before running the wrappers instead of editing the scripts:
+variables instead of editing the scripts:
 
 ```sh
-    export SCGENEHE_SAIGE_ENV=saige
-    export SCGENEHE_SAIGEQTL_ENV=saigeqtl
-    export SCGENEHE_PY_ENV=qq
-    export SCGENEHE_R_ENV=r_env
-    export SCGENEHE_SNAKEMAKE_ENV=scgenehe-snakemake
+export SCGENEHE_SAIGE_ENV=saige
+export SCGENEHE_SAIGEQTL_ENV=saigeqtl
+export SCGENEHE_PY_ENV=pythn
+export SCGENEHE_R_ENV=r_env
+export SCGENEHE_SNAKEMAKE_ENV=scgenehe-snakemake
 ```
 
-## Commands
+Make the shell entry points executable if your checkout did not preserve file
+permissions:
+
+```sh
+chmod +x scGeneHE/*.sh scripts/*.sh tests/*.sh
+```
+
+## Workflow Stages
 
 scGeneHE includes five sequential stages to conduct cis-heritability estimation: generating the cell-level sparse GRM (genetic relationship matrix), fitting the point estimate, creating bootstrap phenotype files, fitting bootstrap estimates, and aggregating bootstrap results. Each stage takes explicit input/output paths so users can organize data by project, cell type, or gene without editing hardcoded paths in the scripts.
 
@@ -98,11 +138,13 @@ Detailed wrapper arguments are documented in [`docs/usage.md`](docs/usage.md). S
     * Input: variance parameter estimates files generated in ```Step 4```
     * Output: bootstrap estimate result
 
-## Example Usage
+## Manual Example Usage
 
 We generate sample data to illustrate the usage of scGeneHE. We use publicly available genotype data from [1000 Genome Project](https://www.internationalgenome.org/category/genotypes/) and publicly available single-cell gene expression data from [OneK1K](https://onek1k.org/). We truncate 1MB region from chromosome 1 of 100 randomly sampled European individuals from `1000GP`, combined with 100 random individual's single-cell expression (50 cells per donor) of gene CDC37 in CD4+ T effector memory cells in `OneK1K` data. 
 
 Run these commands from the repository root after completing environment setup.
+For Snakemake usage, prefer the workflow command above and edit
+`workflow/config/config.example.yaml`.
 
 ```sh
     ./scGeneHE/generate_grm.sh \
@@ -167,6 +209,17 @@ Cleanup mode removes only `boot{i}/${boot_file_prefix}_{i}.txt` and
 `boot{i}/${boot_file_prefix}_id.txt` after `boot{i}/${boot_out_prefix}.rda`
 exists and is non-empty. Bootstrap result files are kept for aggregation.
 
+For a more aggressive manual cleanup after aggregation, pass `cleanup` as the
+final `agg_boot.sh` argument:
+
+```sh
+    ./scGeneHE/agg_boot.sh ... _boot_res cleanup
+```
+
+This removes each gene's `boot*/` bootstrap directories only after the
+corresponding aggregate CSV exists and is non-empty. Use this mode when the
+aggregate bootstrap CSV is the final artifact you want to retain.
+
 When using Snakemake, bootstrap phenotype intermediates can also be marked as
 Snakemake `temp()` files by setting:
 
@@ -184,48 +237,42 @@ bootstrap `.rda` files for aggregation or later inspection. Set
 Snakemake shell jobs; this is separate from where declared output files are
 written.
 
-## Snakemake Workflow
+Snakemake can also remove bootstrap estimate `.rda` and variance-ratio files
+after aggregation succeeds:
 
-The Snakemake scaffold is a workflow wrapper around the existing shell scripts.
-It does not build SAIGE-QTL automatically. Install a working named `saigeqtl`
-environment first using the recipe workflow above, then set environment names
-and paths in `workflow/config/config.example.yaml`.
-
-Dry-run the example workflow from the repository root:
-
-```sh
-    conda activate scgenehe-snakemake
-    snakemake \
-        --snakefile workflow/Snakefile \
-        --configfile workflow/config/config.example.yaml \
-        --cores 1 \
-        --dry-run \
-        --printshellcmds
+```yaml
+bootstrap:
+  snakemake_temp_bootstrap_estimates: true
 ```
 
-Run the workflow by removing `--dry-run`. No Snakemake account or online login
-is required.
-
-For new analyses, copy `workflow/config/config.example.yaml`, edit paths and
-parameters for your cohort/cell type, and keep the original example config as a
-working reference.
+This is preferred over wrapper-level post-aggregation cleanup when running the
+Snakemake workflow, because Snakemake then manages the deletion after all
+downstream dependencies are satisfied.
 
 ## Testing
 
-The repository includes a lightweight smoke-test suite for the example data,
-bootstrap file generation, bootstrap aggregation, accidental local-path
-hardcoding, shell syntax, and Snakemake dry-run validation. Run it locally with:
+The repository includes two levels of local checks.
+
+For users setting up the Snakemake workflow, run:
 
 ```sh
-    SCGENEHE_PY_ENV=qq \
-    SCGENEHE_R_ENV=r_env \
-    SCGENEHE_SNAKEMAKE_ENV=scgenehe-snakemake \
-    bash scripts/run_smoke_tests.sh
+bash scripts/check_snakemake_setup.sh
 ```
 
-If your conda environments use the default repository names, use
-`SCGENEHE_PY_ENV=pythn` and `SCGENEHE_R_ENV=r_env`. GitHub Actions runs the
-same smoke tests on every push and pull request.
+For developers, the full smoke-test suite validates the example data, bootstrap
+file generation, bootstrap aggregation, accidental local-path hardcoding, shell
+syntax, and Snakemake dry-run behavior:
+
+```sh
+SCGENEHE_PY_ENV=pythn \
+SCGENEHE_R_ENV=r_env \
+SCGENEHE_SNAKEMAKE_ENV=scgenehe-snakemake \
+bash scripts/run_smoke_tests.sh
+```
+
+Set those environment variables to your local conda environment names if they
+differ from the defaults. GitHub Actions runs the smoke tests on every push and
+pull request.
 
 ## Support
 Please contact zix020@ucsd.edu 

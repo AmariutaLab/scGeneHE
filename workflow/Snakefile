@@ -34,11 +34,16 @@ BOOT_INDICES = list(range(N_BOOT))
 N_MARKER = str(config["model"]["n_marker"])
 PHENO_SUFFIX = txt_suffix(str(config["inputs"]["phenotype_suffix"]))
 USE_SNAKEMAKE_TEMP = bool(config["bootstrap"].get("snakemake_temp_intermediates", False))
+USE_TEMP_BOOTSTRAP_ESTIMATES = bool(config["bootstrap"].get("snakemake_temp_bootstrap_estimates", False))
 RUNTIME_TMPDIR = config.get("runtime", {}).get("tmpdir") or os.environ.get("TMPDIR", "/tmp")
 
 
 def maybe_temp(path):
     return temp(path) if USE_SNAKEMAKE_TEMP else path
+
+
+def maybe_temp_bootstrap_estimate(path):
+    return temp(path) if USE_TEMP_BOOTSTRAP_ESTIMATES else path
 
 
 def grm_standard(gene):
@@ -203,8 +208,8 @@ rule estimate_boot:
         grm_ids=rules.generate_grm.output.sample_ids,
         bootstrap=rules.bootstrap_real.output.pheno
     output:
-        rda=[bootstrap_rda(gene, boot) for gene in GENES for boot in BOOT_INDICES],
-        variance_ratio=[bootstrap_variance_ratio(gene, boot) for gene in GENES for boot in BOOT_INDICES]
+        rda=[maybe_temp_bootstrap_estimate(bootstrap_rda(gene, boot)) for gene in GENES for boot in BOOT_INDICES],
+        variance_ratio=[maybe_temp_bootstrap_estimate(bootstrap_variance_ratio(gene, boot)) for gene in GENES for boot in BOOT_INDICES]
     params:
         grm_dir=config["outputs"]["grm_dir"],
         grm_id_dir=config["outputs"]["grm_dir"],
@@ -261,6 +266,7 @@ rule aggregate_boot:
         aggregate_dir=config["outputs"]["aggregate_dir"],
         n_boot=N_BOOT,
         aggregate_suffix=config["bootstrap"]["aggregate_suffix"],
+        post_aggregate_cleanup=config["bootstrap"].get("post_aggregate_cleanup", "keep"),
         r_env=config["envs"]["r"]
     resources:
         tmpdir=RUNTIME_TMPDIR
@@ -273,5 +279,6 @@ rule aggregate_boot:
             "{params.aggregate_dir}" \
             "{params.n_boot}" \
             "{input.gene_list}" \
-            "{params.aggregate_suffix}"
+            "{params.aggregate_suffix}" \
+            "{params.post_aggregate_cleanup}"
         """

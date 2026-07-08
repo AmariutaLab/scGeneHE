@@ -185,7 +185,8 @@ bootstrap `.rda` result exists and is non-empty.
   <agg_out_dir> \
   <n_boot> \
   <gene_list> \
-  <agg_out_suffix>
+  <agg_out_suffix> \
+  [post_aggregate_cleanup]
 ```
 
 Arguments:
@@ -196,7 +197,13 @@ Arguments:
 - `n_boot`: number of bootstrap replicates.
 - `gene_list`: one gene per line, no header.
 - `agg_out_suffix`: aggregate output suffix, for example `_boot_res`.
+- `post_aggregate_cleanup`: optional `keep` or `cleanup`. Defaults to `keep`.
 
 Output per gene:
 
 - `<agg_out_dir>/GENE<agg_out_suffix>.csv`
+
+`cleanup` removes `boot*/` directories under each gene's bootstrap estimate
+directory only after the corresponding aggregate CSV exists and is non-empty.
+This is the most aggressive wrapper cleanup mode because bootstrap estimate
+files are removed after aggregation.
