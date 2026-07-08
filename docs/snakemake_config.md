@@ -14,6 +14,18 @@ snakemake \
   --printshellcmds
 ```
 
+After creating and activating the Snakemake environment, users can also run the
+bundled setup check:
+
+```sh
+bash scripts/check_snakemake_setup.sh
+```
+
+This verifies that Snakemake is available, checks shell wrapper syntax, validates
+the example schema, scans for accidental local hardcoded paths, and dry-runs the
+example workflow. It is intended as a lightweight setup test before running
+SAIGE or SAIGE-QTL jobs.
+
 ## inputs
 
 - `gene_list`: text file with one gene per line and no header.
