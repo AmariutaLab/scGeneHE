@@ -209,6 +209,17 @@ Cleanup mode removes only `boot{i}/${boot_file_prefix}_{i}.txt` and
 `boot{i}/${boot_file_prefix}_id.txt` after `boot{i}/${boot_out_prefix}.rda`
 exists and is non-empty. Bootstrap result files are kept for aggregation.
 
+For a more aggressive manual cleanup after aggregation, pass `cleanup` as the
+final `agg_boot.sh` argument:
+
+```sh
+    ./scGeneHE/agg_boot.sh ... _boot_res cleanup
+```
+
+This removes each gene's `boot*/` bootstrap directories only after the
+corresponding aggregate CSV exists and is non-empty. Use this mode when the
+aggregate bootstrap CSV is the final artifact you want to retain.
+
 When using Snakemake, bootstrap phenotype intermediates can also be marked as
 Snakemake `temp()` files by setting:
 
@@ -225,6 +236,18 @@ bootstrap `.rda` files for aggregation or later inspection. Set
 `runtime.tmpdir` to expose a scratch or `/tmp` directory as `TMPDIR` inside
 Snakemake shell jobs; this is separate from where declared output files are
 written.
+
+Snakemake can also remove bootstrap estimate `.rda` and variance-ratio files
+after aggregation succeeds:
+
+```yaml
+bootstrap:
+  snakemake_temp_bootstrap_estimates: true
+```
+
+This is preferred over wrapper-level post-aggregation cleanup when running the
+Snakemake workflow, because Snakemake then manages the deletion after all
+downstream dependencies are satisfied.
 
 ## Testing
 

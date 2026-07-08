@@ -35,3 +35,23 @@ if [[ "${actual_row}" != "${EXPECTED_ROW}" ]]; then
     printf 'Unexpected aggregation row: %s\n' "${actual_row}" >&2
     exit 1
 fi
+
+CLEAN_BOOT_DIR="${TMP_DIR}/clean_boot"
+CLEAN_OUT_DIR="${TMP_DIR}/clean_out"
+
+mkdir -p "${CLEAN_BOOT_DIR}/CDC37/boot0" "${CLEAN_OUT_DIR}"
+Rscript -e "modglmm <- list(theta = c(1, 0.2, 0.3)); save(modglmm, file = '${CLEAN_BOOT_DIR}/CDC37/boot0/smoke.rda')"
+
+SCGENEHE_R_ENV="${SCGENEHE_R_ENV:-r_env}" \
+    bash "${REPO_ROOT}/scGeneHE/agg_boot.sh" \
+    "${CLEAN_BOOT_DIR}" smoke "${CLEAN_OUT_DIR}" 1 "${GENE_LIST}" _boot_res cleanup
+
+if [[ ! -s "${CLEAN_OUT_DIR}/CDC37_boot_res.csv" ]]; then
+    printf 'Cleanup aggregation did not create the expected aggregate CSV.\n' >&2
+    exit 1
+fi
+
+if [[ -e "${CLEAN_BOOT_DIR}/CDC37/boot0" ]]; then
+    printf 'Post-aggregation cleanup did not remove bootstrap directory.\n' >&2
+    exit 1
+fi

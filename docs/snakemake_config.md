@@ -65,15 +65,21 @@ For large analyses, `bootstrap_dir` can point to scratch or `/tmp` while
 - `seed`: optional random seed for deterministic bootstrap sampling.
 - `storage_policy`: `keep` or `cleanup`, passed to `estimate_boot.sh`.
 - `snakemake_temp_intermediates`: when `true`, Snakemake marks bootstrap phenotype and ID files as `temp()` outputs.
+- `snakemake_temp_bootstrap_estimates`: when `true`, Snakemake marks bootstrap `.rda` and variance-ratio estimate outputs as `temp()` outputs.
+- `post_aggregate_cleanup`: `keep` or `cleanup`, passed to `agg_boot.sh`.
 
 Use only one cleanup strategy at first unless you have tested your workflow:
 
 - `storage_policy: keep` and `snakemake_temp_intermediates: false`: keep all intermediates.
 - `storage_policy: cleanup`: wrapper deletes bootstrap phenotype files after each successful bootstrap estimate.
 - `snakemake_temp_intermediates: true`: Snakemake deletes bootstrap phenotype files after downstream rules no longer need them.
+- `snakemake_temp_bootstrap_estimates: true`: Snakemake deletes bootstrap estimate files after aggregation no longer needs them.
+- `post_aggregate_cleanup: cleanup`: wrapper removes per-bootstrap directories after each gene's aggregate CSV exists.
 
-Bootstrap `.rda` estimate files are not marked as temp because aggregation
-depends on them and users may want to inspect or reuse them.
+Bootstrap `.rda` estimate files are not marked as temp by default because
+aggregation depends on them and users may want to inspect or reuse them. Set
+`snakemake_temp_bootstrap_estimates: true` only when the aggregate CSV is the
+final bootstrap artifact you need to keep.
 
 ## runtime
 
