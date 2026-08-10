@@ -64,8 +64,10 @@ envs:
   r: r_env
 
 saigeqtl_recipe:
+  package_channel: ziqixu091
+  package_name: r-saigeqtl
   recipe_repo: https://github.com/ziqixu091/aryarm-conda
   recipe_commit: 891e0944282d48cecafd4f2a8d5ba9643c931a89
   upstream_repo: https://github.com/weizhou0/SAIGEQTL
   upstream_commit: 0d1f1ebcc2898eef8c3c6d0a372ee24612ec8ceb
-  note: Use the conda recipe workflow to build/install r-saigeqtl before running scGeneHE; the upstream SAIGE-QTL YAML environment is not recommended for scGeneHE.
+  note: Use the scGeneHE-tested conda channel package when available; use the recipe workflow to reproduce the build or update the tested SAIGE-QTL commit. The upstream SAIGE-QTL YAML environment is not recommended for scGeneHE.

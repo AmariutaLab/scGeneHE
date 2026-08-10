@@ -98,13 +98,23 @@ Named conda environments used by the wrapper scripts:
 - `r`
 
 The Snakemake scaffold does not create or manage these analysis environments.
-Install them before running the workflow. SAIGE-QTL should be installed through
-the tested conda recipe workflow, not the upstream YAML route.
+Install them before running the workflow. SAIGE-QTL should be installed from
+the scGeneHE-tested conda channel package when available:
+
+```sh
+conda create -n saigeqtl -c conda-forge -c bioconda 'ziqixu091::r-saigeqtl'
+```
+
+The recipe-build route remains available for maintainers or users who need to
+reproduce the tested package build. The upstream SAIGE-QTL YAML route is not
+recommended for scGeneHE.
 
 ## saigeqtl_recipe
 
 Provenance fields for the tested SAIGE-QTL recipe:
 
+- `package_channel`
+- `package_name`
 - `recipe_repo`
 - `recipe_commit`
 - `upstream_repo`

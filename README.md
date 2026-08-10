@@ -35,13 +35,23 @@ conda env create --file envs/pythn.yaml
 conda env create --file envs/r_env.yaml
 ```
 
-Install [SAIGE-QTL](https://github.com/weizhou0/SAIGEQTL) through the tested
-conda recipe route. The upstream SAIGE-QTL YAML environment has not been
-reliable for scGeneHE, so the recommended route is to build/install
-`r-saigeqtl` from [`ziqixu091/aryarm-conda`](https://github.com/ziqixu091/aryarm-conda).
-The current scGeneHE example config records recipe commit
+Install the scGeneHE-tested [SAIGE-QTL](https://github.com/weizhou0/SAIGEQTL)
+conda package from the maintained channel:
+
+```sh
+conda create -n saigeqtl -c conda-forge -c bioconda 'ziqixu091::r-saigeqtl'
+```
+
+The recommended `r-saigeqtl` package should correspond to the tested upstream
+SAIGE-QTL commit recorded in `workflow/config/config.example.yaml`. The current
+scGeneHE example config records recipe commit
 `891e0944282d48cecafd4f2a8d5ba9643c931a89` and upstream SAIGE-QTL commit
-`0d1f1ebcc2898eef8c3c6d0a372ee24612ec8ceb`.
+`0d1f1ebcc2898eef8c3c6d0a372ee24612ec8ceb`. Keep these provenance fields
+updated whenever the recommended channel package changes.
+
+If the channel package is unavailable on your system, or if you need to
+reproduce the package build, build/install `r-saigeqtl` from the tested recipe
+in [`ziqixu091/aryarm-conda`](https://github.com/ziqixu091/aryarm-conda):
 
 ```sh
 git clone https://github.com/ziqixu091/aryarm-conda.git
@@ -53,8 +63,8 @@ conda create -y -n saigeqtl -c "file://${CONDA_PREFIX}/conda-bld" -c conda-forge
 ```
 
 When updating SAIGE-QTL, update `vcommit` and `sha256` in the recipe, rebuild
-`r-saigeqtl`, then update the provenance fields in
-`workflow/config/config.example.yaml`.
+and upload `r-saigeqtl`, test it with scGeneHE, then update the provenance
+fields in `workflow/config/config.example.yaml`.
 
 4. Check that the Snakemake setup is usable.
 
